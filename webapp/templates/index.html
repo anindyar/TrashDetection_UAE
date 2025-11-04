@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Trash Detection System - UAE</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 15px;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 30px;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        #map {
+            height: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .stats {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .popup-content {
+            max-width: 400px;
+        }
+
+        .popup-image {
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .popup-info {
+            margin-bottom: 10px;
+        }
+
+        .popup-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .vehicle-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗑️ Drone Trash Detection System</h1>
+            <p class="subtitle">Upload DJI drone footage to detect and map littering locations with vehicle tracking</p>
+        </header>
+
+        <div class="upload-section">
+            <h2>Upload Files</h2>
+            <div class="drop-zone" id="dropZone">
+                <p>📁 Drag & drop DJI video (.mp4) and subtitle (.srt) files here</p>
+                <p>or click to browse</p>
+                <input type="file" id="videoFile" class="file-input" accept=".mp4,.MP4">
+                <input type="file" id="srtFile" class="file-input" accept=".srt,.SRT">
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div style="margin-top: 20px;">
+                <label>
+                    Confidence Threshold: <input type="number" id="confThreshold" value="0.6" min="0.3" max="0.9" step="0.05" style="width: 80px;">
+                </label>
+                <label style="margin-left: 20px;">
+                    Proximity Radius (ft): <input type="number" id="proximityRadius" value="15" min="5" max="50" step="5" style="width: 80px;">
+                </label>
+            </div>
+
+            <button class="btn" id="processBtn" disabled onclick="startProcessing()">Process Video</button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h3>Processing...</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <p id="progressText" style="margin-top: 10px; color: #666;"></p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="stats" id="statsSection">
+            <h2>Detection Results</h2>
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDetections">0</div>
+                    <div class="stat-label">Total Trash Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="withVehicles">0</div>
+                    <div class="stat-label">With Nearby Vehicles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="platesCapture">0</div>
+                    <div class="stat-label">License Plates Captured</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let videoFile = null;
+        let srtFile = null;
+        let currentJobId = null;
+        let map = null;
+
+        // Drag and drop handling
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('click', () => {
+            if (!videoFile) {
+                document.getElementById('videoFile').click();
+            } else {
+                document.getElementById('srtFile').click();
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        document.getElementById('videoFile').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                videoFile = e.target.files[0];
+                updateFileList();
+            }
+        });
+
+        document.getElementById('srtFile').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                srtFile = e.target.files[0];
+                updateFileList();
+            }
+        });
+
+        function handleFiles(files) {
+            for (let file of files) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'mp4') {
+                    videoFile = file;
+                } else if (ext === 'srt') {
+                    srtFile = file;
+                }
+            }
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            if (videoFile) {
+                fileList.innerHTML += `<div class="file-item">📹 ${videoFile.name} (${(videoFile.size / 1024 / 1024).toFixed(2)} MB)</div>`;
+            }
+
+            if (srtFile) {
+                fileList.innerHTML += `<div class="file-item">📄 ${srtFile.name}</div>`;
+            }
+
+            document.getElementById('processBtn').disabled = !(videoFile && srtFile);
+        }
+
+        async function startProcessing() {
+            // Upload files
+            const formData = new FormData();
+            formData.append('video', videoFile);
+            formData.append('srt', srtFile);
+
+            try {
+                showProgress('Uploading files...');
+
+                const uploadResponse = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadData = await uploadResponse.json();
+                currentJobId = uploadData.job_id;
+
+                // Start processing
+                showProgress('Processing video...');
+
+                const conf = parseFloat(document.getElementById('confThreshold').value);
+                const radius = parseInt(document.getElementById('proximityRadius').value);
+
+                const processResponse = await fetch(`/process/${currentJobId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({conf, radius})
+                });
+
+                // Poll for status
+                pollStatus();
+
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+                hideProgress();
+            }
+        }
+
+        function showProgress(text) {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function hideProgress() {
+            document.getElementById('progressSection').style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            document.getElementById('alertContainer').appendChild(alertDiv);
+
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        async function pollStatus() {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${currentJobId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'complete') {
+                        clearInterval(interval);
+                        hideProgress();
+                        showAlert('Processing complete!', 'success');
+                        loadResults();
+                    } else if (data.status === 'processing') {
+                        // Update progress (simulated)
+                        const fill = document.getElementById('progressFill');
+                        const currentWidth = parseInt(fill.style.width) || 0;
+                        fill.style.width = Math.min(currentWidth + 5, 95) + '%';
+                        fill.textContent = fill.style.width;
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                    showAlert('Error checking status', 'error');
+                }
+            }, 2000);
+        }
+
+        async function loadResults() {
+            try {
+                const response = await fetch(`/results/${currentJobId}`);
+                const data = await response.json();
+
+                // Update stats
+                document.getElementById('totalDetections').textContent = data.total_detections;
+                document.getElementById('withVehicles').textContent =
+                    data.markers.filter(m => m.nearby_vehicles.length > 0).length;
+                document.getElementById('platesCapture').textContent =
+                    data.markers.filter(m => m.nearby_vehicles.some(v => v.plate_detected)).length;
+
+                document.getElementById('statsSection').style.display = 'block';
+
+                // Show map
+                document.getElementById('map').style.display = 'block';
+                initMap(data.markers);
+
+            } catch (error) {
+                showAlert('Error loading results: ' + error.message, 'error');
+            }
+        }
+
+        function initMap(markers) {
+            if (markers.length === 0) {
+                showAlert('No trash detected in video', 'error');
+                return;
+            }
+
+            // Initialize map centered on first detection
+            const center = [markers[0].lat, markers[0].lon];
+            map = L.map('map').setView(center, 18);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add markers for each trash detection
+            markers.forEach((marker, index) => {
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: red; color: white; width: 30px; height: 30px; border-radius: 50%;
+                           display: flex; align-items: center; justify-content: center; font-weight: bold;
+                           border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${index + 1}</div>`
+                });
+
+                const mapMarker = L.marker([marker.lat, marker.lon], {icon}).addTo(map);
+
+                // Click to show popup with frame and vehicle info
+                mapMarker.on('click', async () => {
+                    await showMarkerPopup(marker, mapMarker);
+                });
+            });
+
+            // Fit map to show all markers
+            const bounds = markers.map(m => [m.lat, m.lon]);
+            map.fitBounds(bounds);
+        }
+
+        async function showMarkerPopup(marker, mapMarker) {
+            try {
+                // Fetch frame image
+                const frameResponse = await fetch(`/frame/${currentJobId}/${marker.frame}`);
+                const frameData = await frameResponse.json();
+
+                // Build popup content
+                let popupHTML = `
+                    <div class="popup-content">
+                        <img src="${frameData.image}" class="popup-image" alt="Frame ${marker.frame}">
+                        <div class="popup-info">
+                            <span class="popup-label">Frame:</span> ${marker.frame}<br>
+                            <span class="popup-label">Type:</span> ${marker.class}<br>
+                            <span class="popup-label">Confidence:</span> ${(marker.confidence * 100).toFixed(1)}%<br>
+                            <span class="popup-label">Location:</span> ${marker.lat.toFixed(6)}, ${marker.lon.toFixed(6)}
+                        </div>
+                `;
+
+                if (marker.nearby_vehicles.length > 0) {
+                    popupHTML += '<div class="vehicle-info"><strong>🚗 Nearby Vehicles:</strong><br>';
+                    marker.nearby_vehicles.forEach((vehicle, i) => {
+                        popupHTML += `${i + 1}. ${vehicle.vehicle_type} - ${vehicle.distance_feet.toFixed(1)} ft away`;
+                        if (vehicle.plate_detected && vehicle.plate_number) {
+                            popupHTML += ` <strong>[Plate: ${vehicle.plate_number}]</strong>`;
+                        }
+                        popupHTML += '<br>';
+                    });
+                    popupHTML += '</div>';
+                } else {
+                    popupHTML += '<div class="vehicle-info">No vehicles within proximity radius</div>';
+                }
+
+                popupHTML += '</div>';
+
+                mapMarker.bindPopup(popupHTML, {maxWidth: 400}).openPopup();
+
+            } catch (error) {
+                console.error('Error loading frame:', error);
+                mapMarker.bindPopup('Error loading frame preview').openPopup();
+            }
+        }
+    </script>
+</body>
+</html>
