@@ -1,0 +1,40 @@
+# Video files
+*.mp4
+*.MP4
+*.avi
+*.mov
+*.webm
+*.mkv
+*.flv
+
+# Large model weights (except base model)
+runs/
+
+# Virtual environment
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Detection outputs
+output*.mp4
+*detections.json
+*detections.json.checkpoint
+
+# Dataset (can be re-downloaded)
+Waste-detect-v-drone-1/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+dist/
+build/
