@@ -34,7 +34,7 @@ def calculate_iou(box1, box2):
 # -------------------------------
 # Main Function
 # -------------------------------
-def main(video_path, base_lat, base_lon, step, output_video, output_json, conf_thresh=0.75):
+def main(video_path, base_lat, base_lon, step, output_video, output_json, conf_thresh=0.6):
     # Load BOTH models
     print("[INFO] Loading YOLOv8 models...")
     print(f"[INFO] Using confidence threshold: {conf_thresh}")
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("--step", type=float, default=0.00001, help="GPS increment per frame")
     parser.add_argument("--output_video", default="output.mp4", help="Output annotated video")
     parser.add_argument("--output_json", default="detections.json", help="Output detection JSON")
-    parser.add_argument("--conf", type=float, default=0.75, help="Confidence threshold (0.0-1.0). Higher = fewer false positives. Default: 0.75")
+    parser.add_argument("--conf", type=float, default=0.6, help="Confidence threshold (0.0-1.0). Higher = fewer false positives, Lower = more detections. Default: 0.6")
 
     args = parser.parse_args()
     main(args.video, args.lat, args.lon, args.step, args.output_video, args.output_json, args.conf)
