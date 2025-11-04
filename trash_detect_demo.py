@@ -94,7 +94,8 @@ def main(video_path, base_lat, base_lon, step, output_video, output_json, conf_t
 
             try:
                 # Step 1: Run base model to detect all objects (cars, people, signs, etc.)
-                base_results = base_model.predict(frame, conf=0.5, iou=0.5, max_det=100, verbose=False)
+                # Using higher confidence (0.6) to reduce false detections from base model
+                base_results = base_model.predict(frame, conf=0.6, iou=0.5, max_det=100, verbose=False)
                 base_boxes = base_results[0].boxes.xyxy.cpu().numpy() if base_results and len(base_results[0].boxes) > 0 else []
                 base_classes = base_results[0].boxes.cls.cpu().numpy() if base_results and len(base_results[0].boxes) > 0 else []
                 base_scores = base_results[0].boxes.conf.cpu().numpy() if base_results and len(base_results[0].boxes) > 0 else []
@@ -129,18 +130,19 @@ def main(video_path, base_lat, base_lon, step, output_video, output_json, conf_t
                     for base_det in base_detections:
                         if base_det['class'] in non_waste_classes:
                             iou = calculate_iou(waste_box, base_det['box'])
-                            # If IoU > 0.3, it's likely part of a normal object, not waste
-                            if iou > 0.3:
+                            # If IoU > 0.5 (50% overlap), it's likely part of a normal object, not waste
+                            # Increased threshold to 0.5 to reduce false rejections of actual waste
+                            if iou > 0.5:
                                 is_valid_waste = False
                                 overlapping_object = base_det['class']
                                 break
 
                     # Only add to detections if it's valid waste (not overlapping with common objects)
                     if is_valid_waste:
-                        # Draw RED bounding box for waste
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                        # Draw THICK RED bounding box for waste (increased from 2 to 6 for visibility)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 6)
                         cv2.putText(frame, f"WASTE: {label} {conf:.2f}", (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 3)
 
                         # Mock GPS tagging
                         lat, lon = mock_gps(base_lat, base_lon, step, frame_num)
