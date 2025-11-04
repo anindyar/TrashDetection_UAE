@@ -146,11 +146,32 @@ def main(video_path, output_video, output_json, srt_file=None,
     print("[INFO] Loading custom waste detection model (4 waste classes)...")
     waste_model = YOLO("runs/detect/waste_detect/weights/best.pt")
 
-    # Initialize OCR reader
+    # Initialize OCR reader with GPU detection
     print("[INFO] Initializing EasyOCR for license plate recognition...")
     print("[INFO] This may take a moment to download language models...")
-    print("[INFO] GPU acceleration ENABLED for faster OCR processing")
-    ocr_reader = easyocr.Reader(['en'], gpu=True)  # English only, can add 'ar' for Arabic
+
+    # Check for GPU availability (CUDA/ROCm supported by PyTorch)
+    import torch
+    gpu_available = torch.cuda.is_available()
+
+    if gpu_available:
+        # Check if ROCm (AMD) or CUDA (NVIDIA)
+        if hasattr(torch.version, 'hip') and torch.version.hip is not None:
+            print(f"[INFO] AMD GPU detected (ROCm) - Attempting GPU acceleration")
+        else:
+            print(f"[INFO] NVIDIA GPU detected (CUDA) - GPU acceleration enabled")
+
+        try:
+            # Try to initialize with GPU - works with both CUDA and ROCm
+            ocr_reader = easyocr.Reader(['en'], gpu=True)
+            print("[INFO] GPU acceleration successfully enabled for OCR")
+        except Exception as e:
+            print(f"[WARN] GPU initialization failed: {e}")
+            print("[INFO] Falling back to CPU mode")
+            ocr_reader = easyocr.Reader(['en'], gpu=False)
+    else:
+        print("[INFO] No GPU detected - running on CPU")
+        ocr_reader = easyocr.Reader(['en'], gpu=False)
 
     # Define vehicle classes that might be near trash
     vehicle_classes = {'car', 'truck', 'bus', 'motorcycle'}
