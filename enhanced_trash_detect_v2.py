@@ -375,6 +375,24 @@ def main(video_path, output_video, output_json, srt_file=None,
 
                         frame_detections.append(detection_entry)
 
+                # Add distance to nearest trash for all vehicles
+                for vehicle in frame_vehicles:
+                    vehicle_center = get_box_center(vehicle['bbox'])
+                    min_distance = float('inf')
+
+                    # Calculate distance to each piece of trash
+                    for waste_box in waste_boxes:
+                        waste_center = get_box_center(waste_box)
+                        pixel_distance = calculate_pixel_distance(vehicle_center, waste_center)
+                        real_distance_ft = pixels_to_feet(pixel_distance, current_altitude_ft, frame_width)
+                        min_distance = min(min_distance, real_distance_ft)
+
+                    # Add distance to vehicle info
+                    if min_distance != float('inf'):
+                        vehicle["distance_to_nearest_trash_ft"] = round(min_distance, 2)
+                    else:
+                        vehicle["distance_to_nearest_trash_ft"] = None  # No trash in frame
+
                 # Draw base model detections (for context, in GREEN)
                 for base_det in base_detections:
                     if base_det['class'] in non_waste_classes and base_det['class'] not in vehicle_classes:
@@ -386,7 +404,7 @@ def main(video_path, output_video, output_json, srt_file=None,
                 detections_list.append({
                     "frame": frame_num,
                     "detections": frame_detections,
-                    "all_vehicles": frame_vehicles  # Store ALL vehicles in frame
+                    "all_vehicles": frame_vehicles  # Store ALL vehicles in frame with distances
                 })
 
                 out.write(frame)
